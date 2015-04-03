@@ -170,7 +170,7 @@ def _process_lines(proc, log, callback=None):
 def _get_log_or_print(should_log):
     def fn(x):
         if should_log:
-            if logging.root.handlers:
+            if hasattr(logging.root, '_ready'):
                 logging.info(x)
             else:
                 print(x)
