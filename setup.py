@@ -10,4 +10,5 @@ setuptools.setup(
     url='http://github.com/nathants/shell',
     packages=setuptools.find_packages(),
     install_requires=open('requirements.txt').readlines(),
+    description='for shelling out',
 )
