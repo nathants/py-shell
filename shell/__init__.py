@@ -4,13 +4,13 @@ import contextlib
 import logging
 import os
 import random
-import string
-import subprocess
-import types
-
 import s.cached
 import s.colors
 import s.hacks
+import string
+import subprocess
+import sys
+import types
 
 
 def run(*a, **kw):
@@ -99,10 +99,14 @@ def tempdir(cleanup=True, intemp=True):
         raise
     finally:
         if cleanup:
-            run(_sudo(), 'rm -rf', path)
+            run(sudo(), 'rm -rf', path)
 
 
 def dispatch_commands(_globals, _name_):
+    """
+    dispatch all top level functions not starting with underscore
+    >>> # dispatch_commands(globals(), __name__)
+    """
     argh.dispatch_commands(sorted([
         v for k, v in _globals.items()
         if isinstance(v, types.FunctionType)
@@ -121,7 +125,10 @@ def less(text):
 
 
 @s.cached.func
-def _sudo():
+def sudo():
+    """
+    used in place of "sudo", returns "sudo" if you can sudo, otherwise ""
+    """
     try:
         run('sudo whoami')
         return 'sudo'
@@ -173,7 +180,8 @@ def _get_log_or_print(should_log):
             if hasattr(logging.root, '_ready'):
                 logging.info(x)
             else:
-                print(x)
+                sys.stdout.write(x.rstrip() + '\n')
+                sys.stdout.flush()
     return fn
 
 
