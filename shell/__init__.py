@@ -18,6 +18,7 @@ def run(*a, **kw):
     warn = kw.pop('warn', False)
     zero = kw.pop('zero', False)
     echo = kw.pop('echo', False)
+    quiet = kw.pop('quiet', _state.get('quiet', False))
     callback = kw.pop('callback', None)
     stream = kw.pop('stream', _state.get('stream', False))
     popen = kw.pop('popen', False)
@@ -38,7 +39,10 @@ def run(*a, **kw):
             return proc.returncode == 0
         elif proc.returncode != 0:
             output = '' if stream else output
-            raise Exception('{}\nexitcode={} from cmd: {}, cwd: {}'.format(output, proc.returncode, cmd, os.getcwd()))
+            if quiet:
+                sys.exit(proc.returncode)
+            else:
+                raise Exception('{}\nexitcode={} from cmd: {}, cwd: {}'.format(output, proc.returncode, cmd, os.getcwd()))
         return output
     else:
         return s.hacks.stringify(subprocess.check_output(cmd, **_call_kw).rstrip())
@@ -156,6 +160,9 @@ def _set_state(key):
 
 
 set_stream = _set_state('stream')
+
+
+set_quiet = _set_state('quiet')
 
 
 def _process_lines(proc, log, callback=None):
