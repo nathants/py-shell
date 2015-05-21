@@ -111,13 +111,16 @@ def dispatch_commands(_globals, _name_):
     dispatch all top level functions not starting with underscore
     >>> # dispatch_commands(globals(), __name__)
     """
-    argh.dispatch_commands(sorted([
-        v for k, v in _globals.items()
-        if isinstance(v, types.FunctionType)
-        and v.__module__ == _name_
-        and not k.startswith('_')
-        and k != 'main'
-    ], key=lambda x: x.__name__))
+    try:
+        argh.dispatch_commands(sorted([
+            v for k, v in _globals.items()
+            if isinstance(v, types.FunctionType)
+            and v.__module__ == _name_
+            and not k.startswith('_')
+            and k != 'main'
+        ], key=lambda x: x.__name__))
+    except KeyboardInterrupt:
+        sys.exit(1)
 
 
 def less(text):
