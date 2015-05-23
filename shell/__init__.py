@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function
+import collections
 import argh
 import contextlib
 import logging
@@ -11,6 +12,9 @@ import string
 import subprocess
 import sys
 import types
+
+
+_max_lines_stdout_cached = 1000
 
 
 def run(*a, **kw):
@@ -169,7 +173,7 @@ set_quiet = _set_state('quiet')
 
 
 def _process_lines(proc, log, callback=None):
-    lines = []
+    lines = collections.deque(maxlen=_max_lines_stdout_cached)
     def process(line):
         line = s.hacks.stringify(line).rstrip()
         if line.strip():
