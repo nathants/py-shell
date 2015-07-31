@@ -33,7 +33,7 @@ def run(*a, **kw):
         _interactive_func[warn](cmd, **_call_kw)
     elif popen:
         return subprocess.Popen(cmd, stdout=subprocess.PIPE, **_call_kw)
-    elif stream or warn or callback or zero:
+    else:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, **_call_kw)
         output = _process_lines(proc, log_or_print, callback)
         if warn:
@@ -48,8 +48,6 @@ def run(*a, **kw):
             else:
                 raise Exception('{}\nexitcode={} from cmd: {}, cwd: {}'.format(output, proc.returncode, cmd, os.getcwd()))
         return output
-    else:
-        return s.hacks.stringify(subprocess.check_output(cmd, **_call_kw).rstrip())
 
 
 def listdir(path='.', abspath=False):
