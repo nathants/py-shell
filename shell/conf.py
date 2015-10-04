@@ -3,6 +3,7 @@ import os.path
 import six
 import yaml
 import s.exceptions
+import logging
 
 
 def _pref_path(_file_):
@@ -23,12 +24,12 @@ def get_or_prompt_pref(key, _file_, default=None, message=None):
     except IOError:
         data = {}
     if key not in data:
-        if message:
-            print(message)
+        message = message or key
         default = 'or default: {}'.format(default) if default else ''
-        data[key] = six.moves.input('value for {key} {default}? '.format(**locals()))
+        data[key] = six.moves.input('preference value for "{message}" {default}? '.format(**locals()))
         with open(path, 'w') as f:
             yaml.dump(data, f, default_flow_style=False)
+    logging.debug('using preference %s for key %s from files %s', data[key], key, path)
     return data[key]
 
 

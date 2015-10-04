@@ -26,7 +26,7 @@ def teardown_function(fn):
 
 def test_interactive_excepts_run():
     with pytest.raises(Exception):
-        shell.run('false', interactive=True)
+        shell.run('false', plain=True)
 
 
 def test_echo_run():
@@ -43,8 +43,7 @@ def test_excepts_run():
 
 
 def test_interactive_run():
-    shell.run('true', interactive=True)
-    shell.run('false', interactive=True, warn=True)
+    shell.run('true', plain=True)
 
 
 def test_callback():

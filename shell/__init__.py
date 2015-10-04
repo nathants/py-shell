@@ -18,26 +18,33 @@ _max_lines_stdout_cached = 1000
 
 
 def run(*a, **kw):
-    interactive = kw.pop('interactive', False)
+    plain = kw.pop('plain', False)
     warn = kw.pop('warn', False)
     zero = kw.pop('zero', False)
     echo = kw.pop('echo', False)
+    stdin = kw.pop('stdin', None)
     quiet = kw.pop('quiet', _state.get('quiet', False))
     callback = kw.pop('callback', None)
     stream = kw.pop('stream', _state.get('stream', False))
     popen = kw.pop('popen', False)
     log_or_print = _get_log_or_print(stream or echo)
     cmd = ' '.join(map(str, a))
-    log_or_print('$({}) [cwd={}]'.format(s.colors.yellow(cmd), os.getcwd()))
-    if interactive:
-        _interactive_func[warn](cmd, **_call_kw)
-    elif popen:
-        return subprocess.Popen(cmd, stdout=subprocess.PIPE, **_call_kw)
+    if stdin:
+        with tempdir(cleanup=False):
+            stdin_file = os.path.abspath('stdin')
+            with open(stdin_file, 'w') as f:
+                f.write(stdin)
+        cmd = 'cat %(stdin_file)s | %(cmd)s' % locals()
+    log_or_print('$(%s) [cwd=%s]' % (s.colors.yellow(cmd), os.getcwd()))
+    if plain:
+        (subprocess.check_call if stream else subprocess.check_output)(cmd, **_call_kw)
     else:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, **_call_kw)
+        if popen:
+            return proc
         output = _process_lines(proc, log_or_print, callback)
         if warn:
-            log_or_print('exit-code={} from cmd: {}'.format(proc.returncode, cmd))
+            log_or_print('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
             return {'output': output, 'exitcode': proc.returncode, 'cmd': cmd}
         elif zero:
             return proc.returncode == 0
@@ -46,7 +53,7 @@ def run(*a, **kw):
             if quiet:
                 sys.exit(proc.returncode)
             else:
-                raise Exception('{}\nexitcode={} from cmd: {}, cwd: {}'.format(output, proc.returncode, cmd, os.getcwd()))
+                raise Exception('%s\nexitcode=%s from cmd: %s, cwd: %s' % (output, proc.returncode, cmd, os.getcwd()))
         return output
 
 
@@ -128,9 +135,9 @@ def dispatch_commands(_globals, _name_):
 def less(text):
     if text:
         with tempdir():
-            with open('_', 'w') as f:
+            with open('text', 'w') as f:
                 f.write(text + '\n\n')
-            run('less -cR _', interactive=True)
+            run('less -cR text', plain=True, stream=True)
 
 
 @s.cached.func
@@ -179,10 +186,12 @@ def _process_lines(proc, log, callback=None):
             lines.append(line)
         if callback:
             callback(line)
-    while proc.poll() is None:
-        process(proc.stdout.readline())
-    for line in proc.communicate()[0].strip().splitlines(): # sometimes the last line disappears
+    while True:
+        line = proc.stdout.readline()
+        if not line:
+            break
         process(line)
+    proc.wait()
     return '\n'.join(lines)
 
 
@@ -195,9 +204,6 @@ def _get_log_or_print(should_log):
                 sys.stdout.write(x.rstrip() + '\n')
                 sys.stdout.flush()
     return fn
-
-
-_interactive_func = {False: subprocess.check_call, True: subprocess.call}
 
 
 _call_kw = {'shell': True, 'executable': '/bin/bash', 'stderr': subprocess.STDOUT}
