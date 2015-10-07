@@ -1,6 +1,5 @@
 from __future__ import print_function, absolute_import
 import os.path
-import six
 import yaml
 import s.exceptions
 import logging
@@ -26,7 +25,7 @@ def get_or_prompt_pref(key, _file_, default=None, message=None):
     if key not in data:
         message = message or key
         default = 'or default: {}'.format(default) if default else ''
-        data[key] = six.moves.input('preference value for "{message}" {default}? '.format(**locals()))
+        data[key] = input('preference value for "{message}" {default}? '.format(**locals()))
         with open(path, 'w') as f:
             yaml.dump(data, f, default_flow_style=False)
     logging.debug('using preference %s for key %s from files %s', data[key], key, path)
