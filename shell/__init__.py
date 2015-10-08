@@ -16,44 +16,61 @@ import types
 _max_lines_stdout_cached = 1000
 
 
-def run(*a, **kw):
-    plain = kw.pop('plain', False)
-    warn = kw.pop('warn', False)
-    zero = kw.pop('zero', False)
-    echo = kw.pop('echo', False)
-    stdin = kw.pop('stdin', None)
-    quiet = kw.pop('quiet', _state.get('quiet', False))
-    callback = kw.pop('callback', None)
-    stream = kw.pop('stream', _state.get('stream', False))
-    popen = kw.pop('popen', False)
-    log_or_print = _get_log_or_print(stream or echo)
-    cmd = ' '.join(map(str, a))
+def _echo(cmd, logfn):
+    logfn('$(%s) [cwd=%s]' % (s.colors.yellow(cmd), os.getcwd()))
+
+
+def _make_cmd(args, stdin):
+    cmd = ' '.join(map(str, args))
     if stdin:
         with tempdir(cleanup=False):
-            stdin_file = os.path.abspath('stdin')
-            with open(stdin_file, 'w') as f:
+            path = os.path.abspath('stdin')
+            with open(path, 'w') as f:
                 f.write(stdin)
-        cmd = 'cat %(stdin_file)s | %(cmd)s' % locals()
-    log_or_print('$(%s) [cwd=%s]' % (s.colors.yellow(cmd), os.getcwd()))
-    if plain:
-        (subprocess.check_call if stream else subprocess.check_output)(cmd, **_call_kw)
-    else:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, **_call_kw)
-        if popen:
-            return proc
-        output = _process_lines(proc, log_or_print, callback)
-        if warn:
-            log_or_print('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
-            return {'output': output, 'exitcode': proc.returncode, 'cmd': cmd}
-        elif zero:
-            return proc.returncode == 0
-        elif proc.returncode != 0:
-            output = '' if stream else output
-            if quiet:
-                sys.exit(proc.returncode)
-            else:
-                raise Exception('%s\nexitcode=%s from cmd: %s, cwd: %s' % (output, proc.returncode, cmd, os.getcwd()))
-        return output
+        cmd = 'cat %(path)s | %(cmd)s' % locals()
+    return cmd
+
+
+def _run(fn, *a, stdin=None, echo=False):
+    cmd = _make_cmd(a, stdin)
+    logfn = _get_logfn(echo or _state.get('stream'))
+    _echo(cmd, logfn)
+    return fn(cmd, **_call_kw)
+
+
+def check_output(*a, **kw):
+    return _run(subprocess.check_output, *a, **kw).decode('utf-8')
+
+
+def check_call(*a, **kw):
+    return _run(subprocess.check_call, *a, **kw)
+
+
+def call(*a, **kw):
+    return _run(subprocess.call, *a, **kw)
+
+
+def run(*a, **kw):
+    stream = kw.get('stream', _state.get('stream'))
+    logfn = _get_logfn(stream or kw.get('echo'))
+    cmd = _make_cmd(a, kw.get('stdin'))
+    _echo(cmd, logfn)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, **_call_kw)
+    if kw.get('popen'):
+        return proc
+    output = _process_lines(proc, logfn, kw.get('callback', None))
+    if kw.get('warn', False):
+        logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
+        return {'output': output, 'exitcode': proc.returncode, 'cmd': cmd}
+    elif kw.get('zero', False):
+        return proc.returncode == 0
+    elif proc.returncode != 0:
+        output = '' if stream else output
+        if kw.get('quiet', _state.get('quiet')):
+            sys.exit(proc.returncode)
+        else:
+            raise Exception('%s\nexitcode=%s from cmd: %s, cwd: %s' % (output, proc.returncode, cmd, os.getcwd()))
+    return output
 
 
 def listdir(path='.', abspath=False):
@@ -133,10 +150,7 @@ def dispatch_commands(_globals, _name_):
 
 def less(text):
     if text:
-        with tempdir():
-            with open('text', 'w') as f:
-                f.write(text + '\n\n')
-            run('less -cR text', plain=True, stream=True)
+        check_call('less -cR', stdin=text)
 
 
 @s.cached.func
@@ -194,7 +208,7 @@ def _process_lines(proc, log, callback=None):
     return '\n'.join(lines)
 
 
-def _get_log_or_print(should_log):
+def _get_logfn(should_log):
     def fn(x):
         if should_log:
             if hasattr(logging.root, '_ready'):

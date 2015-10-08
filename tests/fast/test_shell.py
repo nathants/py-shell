@@ -24,11 +24,6 @@ def teardown_function(fn):
     sys.path.pop(0)
 
 
-def test_interactive_excepts_run():
-    with pytest.raises(Exception):
-        shell.run('false', plain=True)
-
-
 def test_echo_run():
     assert 'asdf' == shell.run('echo asdf')
 
@@ -40,10 +35,6 @@ def test_exitcode_run():
 def test_excepts_run():
     with pytest.raises(Exception):
         shell.run('false')
-
-
-def test_interactive_run():
-    shell.run('true', plain=True)
 
 
 def test_callback():
