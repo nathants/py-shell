@@ -52,9 +52,11 @@ def call(*a, **kw):
 
 def run(*a, **kw):
     stream = kw.get('stream', _state.get('stream'))
-    logfn = _get_logfn(stream or kw.get('echo'))
+    echo = kw.get('echo')
+    logfn = _get_logfn(stream)
     cmd = _make_cmd(a, kw.get('stdin'))
-    _echo(cmd, logfn)
+    if (stream and echo is None) or echo:
+        _echo(cmd, _get_logfn(True))
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, **_call_kw)
     if kw.get('popen'):
         return proc
