@@ -1,5 +1,5 @@
-import collections
 import argh
+import collections
 import contextlib
 import logging
 import os
@@ -7,6 +7,7 @@ import random
 import s.cached
 import s.colors
 import s.hacks
+import signal
 import string
 import subprocess
 import sys
@@ -222,3 +223,7 @@ def _get_logfn(should_log):
 
 
 _call_kw = {'shell': True, 'executable': '/bin/bash', 'stderr': subprocess.STDOUT}
+
+
+def ignore_closed_pipes():
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
