@@ -51,29 +51,29 @@ def call(*a, **kw):
     return _run(subprocess.call, *a, **kw)
 
 
-def run(*a, **kw):
-    stream = kw.get('stream', _state.get('stream'))
-    echo = kw.get('echo')
+def run(*a, stream=False, echo=False, stdin='', popen=False, callback=None, warn=False, zero=False, quiet=False):
+    stream = stream or _state.get('stream')
     logfn = _get_logfn(stream)
-    cmd = _make_cmd(a, kw.get('stdin'))
+    cmd = _make_cmd(a, stdin)
     if (stream and echo is None) or echo:
         _echo(cmd, _get_logfn(True))
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, **_call_kw)
-    if kw.get('popen'):
+    if popen:
         return proc
-    output = _process_lines(proc, logfn, kw.get('callback', None))
-    if kw.get('warn', False):
+    output = _process_lines(proc, logfn, callback)
+    if warn:
         logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
         return {'output': output, 'exitcode': proc.returncode, 'cmd': cmd}
-    elif kw.get('zero', False):
+    elif zero:
         return proc.returncode == 0
     elif proc.returncode != 0:
-        output = '' if stream else output
-        if kw.get('quiet', _state.get('quiet')):
+        if quiet:
             sys.exit(proc.returncode)
         else:
+            output = '' if stream else output
             raise Exception('%s\nexitcode=%s from cmd: %s, cwd: %s' % (output, proc.returncode, cmd, os.getcwd()))
-    return output
+    else:
+        return output
 
 
 def listdir(path='.', abspath=False):
