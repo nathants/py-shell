@@ -1,7 +1,6 @@
 from __future__ import print_function, absolute_import
 import os.path
 import yaml
-import s.exceptions
 import logging
 
 
@@ -33,8 +32,10 @@ def get_or_prompt_pref(key, _file_, default=None, message=None):
 
 
 def service(name, services_yml='/state/services.yml', default=None):
-    with s.exceptions.ignore():
+    try:
         with open(services_yml) as f:
             return yaml.safe_load(f)[name]
+    except:
+        pass
     assert default is not None
     return default

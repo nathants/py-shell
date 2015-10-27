@@ -4,9 +4,9 @@ import contextlib
 import logging
 import os
 import random
-import s.cached
-import s.colors
-import s.hacks
+import util.cached
+import util.colors
+import util.hacks
 import signal
 import string
 import subprocess
@@ -18,7 +18,7 @@ _max_lines_stdout_cached = 1000
 
 
 def _echo(cmd, logfn):
-    logfn('$(%s) [cwd=%s]' % (s.colors.yellow(cmd), os.getcwd()))
+    logfn('$(%s) [cwd=%s]' % (util.colors.yellow(cmd), os.getcwd()))
 
 
 def _make_cmd(args, stdin):
@@ -156,7 +156,7 @@ def less(text):
         check_call('less -cR', stdin=text)
 
 
-@s.cached.func
+@util.cached.func
 def sudo():
     """
     used in place of "sudo", returns "sudo" if you can sudo, otherwise ""
@@ -196,7 +196,7 @@ set_quiet = _set_state('quiet')
 def _process_lines(proc, log, callback=None):
     lines = collections.deque(maxlen=_max_lines_stdout_cached)
     def process(line):
-        line = s.hacks.stringify(line).rstrip()
+        line = util.hacks.stringify(line).rstrip()
         if line.strip():
             log(line)
             lines.append(line)
