@@ -1,4 +1,5 @@
 import argh
+import util.strings
 import collections
 import contextlib
 import logging
@@ -24,11 +25,8 @@ def _echo(cmd, logfn):
 def _make_cmd(args, stdin):
     cmd = ' '.join(map(str, args))
     if stdin:
-        with tempdir(cleanup=False):
-            path = os.path.abspath('stdin')
-            with open(path, 'w') as f:
-                f.write(stdin)
-        cmd = 'cat %(path)s | %(cmd)s' % locals()
+        stdin = util.strings.b64_encode(stdin)
+        cmd = 'echo %(stdin)s | base64 -d | %(cmd)s' % locals()
     return cmd
 
 
@@ -36,7 +34,7 @@ def _run(fn, *a, stdin=None, echo=False):
     cmd = _make_cmd(a, stdin)
     logfn = _get_logfn(echo or _state.get('stream'))
     _echo(cmd, logfn)
-    return fn(cmd, **_call_kw)
+    return fn(cmd, executable='/bin/bash', stderr=subprocess.STDOUT, shell=True)
 
 
 def check_output(*a, **kw):
@@ -51,13 +49,16 @@ def call(*a, **kw):
     return _run(subprocess.call, *a, **kw)
 
 
-def run(*a, stream=False, echo=False, stdin='', popen=False, callback=None, warn=False, zero=False, quiet=False):
+def run(*a, stream=False, echo=False, stdin='', popen=False, callback=None, warn=False, zero=False, quiet=False, raw_cmd=False):
     stream = stream or _state.get('stream')
     logfn = _get_logfn(stream)
     cmd = _make_cmd(a, stdin)
     if (stream and echo is None) or echo:
         _echo(cmd, _get_logfn(True))
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, **_call_kw)
+    if raw_cmd:
+        proc = subprocess.Popen(a, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    else:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, executable='/bin/bash')
     if popen:
         return proc
     output = _process_lines(proc, logfn, callback)
@@ -220,9 +221,6 @@ def _get_logfn(should_log):
                 sys.stdout.write(x.rstrip() + '\n')
                 sys.stdout.flush()
     return fn
-
-
-_call_kw = {'shell': True, 'executable': '/bin/bash', 'stderr': subprocess.STDOUT}
 
 
 def ignore_closed_pipes():
