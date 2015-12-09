@@ -1,4 +1,6 @@
 from __future__ import print_function, absolute_import
+import logging
+import mock
 import os
 import sys
 import pytest
@@ -24,7 +26,7 @@ def teardown_function(fn):
     sys.path.pop(0)
 
 
-def test_echo_run():
+def test_output_run():
     assert 'asdf' == shell.run('echo asdf')
 
 
