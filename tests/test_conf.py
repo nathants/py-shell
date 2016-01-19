@@ -1,5 +1,4 @@
-from __future__ import print_function, absolute_import
-import mock
+from unittest import mock
 import os
 
 import shell
