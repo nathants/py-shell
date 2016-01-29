@@ -17,7 +17,7 @@ def get_or_prompt_pref(key, _file_, default=None, message=None):
     path = _pref_path(_file_)
     try:
         with open(path) as f:
-            data = yaml.safe_load(f)
+            data = yaml.safe_load(f) or {}
     except IOError:
         data = {}
     if key not in data:
