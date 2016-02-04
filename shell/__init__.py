@@ -32,7 +32,7 @@ def _make_cmd(args, stdin):
 
 def _run(fn, *a, stdin=None, echo=False):
     cmd = _make_cmd(a, stdin)
-    logfn = _get_logfn(echo or _state.get('stream'))
+    logfn = _get_logfn(echo or _state.get('echo') or _state.get('stream'))
     _echo(cmd, logfn)
     return fn(cmd, executable='/bin/bash', stderr=subprocess.STDOUT, shell=True)
 
@@ -55,7 +55,7 @@ def run(*a, stream=False, echo=None, stdin='', popen=False, callback=None, warn=
     stream = stream or _state.get('stream')
     logfn = _get_logfn(stream)
     cmd = _make_cmd(a, stdin)
-    if (stream and echo is None) or echo:
+    if (stream and echo is None) or echo or _state.get('echo'):
         _echo(cmd, _get_logfn(True))
     kw = {'stdout': subprocess.PIPE,
           'stderr': subprocess.DEVNULL if hide_stderr else subprocess.STDOUT,
@@ -197,6 +197,9 @@ set_stream = _set_state('stream')
 
 
 set_quiet = _set_state('quiet')
+
+
+set_echo = _set_state('echo')
 
 
 def _process_lines(proc, log, callback=None):
