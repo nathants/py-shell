@@ -1,6 +1,5 @@
 import argh
 import util.strings
-import collections
 import contextlib
 import logging
 import os
@@ -13,9 +12,6 @@ import string
 import subprocess
 import sys
 import types
-
-
-_max_lines_stdout_cached = 1000
 
 
 def _echo(cmd, logfn):
@@ -200,9 +196,9 @@ set_echo = _set_state('echo')
 
 
 def _process_lines(proc, log, callback=None):
-    lines = collections.deque(maxlen=_max_lines_stdout_cached)
+    lines = []
     def process(line):
-        line = util.hacks.stringify(line).rstrip()
+        line = line.decode('utf-8').rstrip()
         if line.strip():
             log(line)
             lines.append(line)
