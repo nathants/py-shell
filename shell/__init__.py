@@ -1,37 +1,32 @@
 import argh
-import util.strings
 import contextlib
 import logging
 import os
 import random
-import util.cached
-import util.colors
-import util.hacks
 import signal
 import string
 import subprocess
 import sys
 import types
+import util.cached
+import util.colors
+import util.hacks
+import util.strings
 
 
 def _echo(cmd, logfn):
     logfn('$(%s) [cwd=%s]' % (util.colors.yellow(cmd), os.getcwd()))
 
 
-def _make_cmd(args, stdin):
-    cmd = ' '.join(map(str, args))
-    if stdin:
-        stdin = util.strings.b64_encode(stdin)
-        cmd = 'echo %(stdin)s | base64 -d | %(cmd)s' % locals()
-    return cmd
+def _make_cmd(args):
+    return ' '.join(map(str, args))
 
 
-def _run(fn, *a, stdin=None, echo=False):
-    cmd = _make_cmd(a, stdin)
+def _run(fn, *a, echo=False):
+    cmd = _make_cmd(a)
     logfn = _get_logfn(echo or _state.get('echo') or _state.get('stream'))
     _echo(cmd, logfn)
     return fn(cmd, executable='/bin/bash', stderr=subprocess.STDOUT, shell=True)
-
 
 def check_output(*a, **kw):
     return _run(subprocess.check_output, *a, **kw).decode('utf-8')
@@ -50,16 +45,20 @@ def call(*a, **kw):
 def run(*a, stream=None, echo=None, stdin='', popen=False, callback=None, warn=False, zero=False, quiet=None, raw_cmd=False, hide_stderr=False):
     stream = stream or _state.get('stream') and stream is not False
     logfn = _get_logfn(stream)
-    cmd = _make_cmd(a, stdin)
+    cmd = _make_cmd(a)
     if (stream and echo is None) or echo or _state.get('echo') and echo is not False:
         _echo(cmd, _get_logfn(True))
     kw = {'stdout': subprocess.PIPE,
           'stderr': subprocess.DEVNULL if hide_stderr else subprocess.STDOUT,
-          'stdin': subprocess.DEVNULL}
+          'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
+
     if raw_cmd:
         proc = subprocess.Popen(a, **kw)
     else:
         proc = subprocess.Popen(cmd, shell=True, executable='/bin/bash', **kw)
+    if stdin:
+        proc.stdin.write(bytes(stdin, 'UTF-8'))
+        proc.stdin.close()
     if popen:
         return proc
     output = _process_lines(proc, logfn, callback)
