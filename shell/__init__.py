@@ -154,7 +154,9 @@ def dispatch_commands(_globals, _name_):
 
 def less(text):
     if text:
-        check_call('less -cR', stdin=text)
+        text = util.strings.b64_encode(text)
+        cmd = 'echo %(text)s | base64 -d | less -cR' % locals()
+        check_call(cmd)
 
 
 @util.cached.func
