@@ -49,9 +49,9 @@ def run(*a, stream=None, echo=None, stdin='', popen=False, callback=None, warn=F
     if (stream and echo is None) or echo or _state.get('echo') and echo is not False:
         _echo(cmd, _get_logfn(True))
     kw = {'stdout': subprocess.PIPE,
-          'stderr': subprocess.DEVNULL if hide_stderr else subprocess.STDOUT,
           'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
-
+    if hide_stderr:
+        kw['stderr'] = subprocess.DEVNULL
     if raw_cmd:
         proc = subprocess.Popen(a, **kw)
     else:
@@ -61,6 +61,7 @@ def run(*a, stream=None, echo=None, stdin='', popen=False, callback=None, warn=F
         proc.stdin.close()
     if popen:
         return proc
+    # TODO have a --stream-only to not accumulate lines to return
     output = _process_lines(proc, logfn, callback)
     if warn:
         logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
