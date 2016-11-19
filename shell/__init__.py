@@ -42,7 +42,17 @@ def call(*a, **kw):
 # TODO have an option for threaded runs that instead of prefixing and colorizing the output, it uses curses, and statically updates every threads stdout display. each thread gets a single line showing the current value of stdin. useful for when one threads output is drowning the others. # noqa
 # TODO add a name and color kwarg, which activate the prefixing and line coloring for multiple threaded runs. color is a bool, and iterates over a global cycle of the colors.
 # TODO actually just move all the threaded shell logic here. it doesnt belong in ec2. naming, colorizing, and keeping track of fails/successes.
-def run(*a, stream=None, echo=None, stdin='', popen=False, callback=None, warn=False, zero=False, quiet=None, raw_cmd=False, hide_stderr=False):
+def run(*a,
+        stream=None,
+        echo=None,
+        stdin='',
+        popen=False,
+        callback=None,
+        warn=False,
+        zero=False,
+        quiet=None,
+        raw_cmd=False,
+        hide_stderr=False):
     stream = stream or _state.get('stream') and stream is not False
     logfn = _get_logfn(stream)
     cmd = _make_cmd(a)
