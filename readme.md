@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/nathants/py-shell.svg?branch=master)](https://travis-ci.org/nathants/py-shell)
-
 for shelling out.
 
 readme coming soon, until then read the tests.
