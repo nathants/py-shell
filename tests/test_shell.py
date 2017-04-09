@@ -31,6 +31,10 @@ def test_exitcode_run():
     assert 1 == shell.run('false', warn=True)['exitcode']
 
 
+def test_stdin():
+    assert 'asdf' == shell.run('cat -', stdin='asdf')
+
+
 def test_excepts_run():
     with pytest.raises(Exception):
         shell.run('false')
