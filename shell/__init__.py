@@ -60,8 +60,9 @@ def run(*a,
     if (stream and echo is None) or echo or _state.get('echo') and echo is not False:
         _echo(cmd, _get_logfn(True))
     kw = {'stdout': subprocess.PIPE,
-          'stderr': subprocess.PIPE,
           'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
+    if warn:
+        kw['stderr'] = subprocess.PIPE
     if hide_stderr:
         kw['stderr'] = subprocess.DEVNULL
     if raw_cmd:
