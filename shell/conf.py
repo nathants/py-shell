@@ -30,11 +30,11 @@ def get_or_prompt_pref(key, _file_, default=None, message=None):
     return data[key]
 
 
-def service(name, services_yml='/state/services.yml', default=None):
+def get_optional_pref(key, _file_, default=None):
+    path = _pref_path(_file_)
     try:
-        with open(services_yml) as f:
-            return yaml.safe_load(f)[name]
-    except:
-        pass
-    assert default is not None
-    return default
+        with open(path) as f:
+            data = yaml.safe_load(f) or {}
+    except IOError:
+        data = {}
+    return data.get(key, default)
