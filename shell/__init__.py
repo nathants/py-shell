@@ -7,6 +7,8 @@ import signal
 import string
 import subprocess
 import sys
+import termios
+import tty
 import types
 import util.cached
 import util.colors
@@ -39,9 +41,18 @@ def check_call(*a, **kw):
 def call(*a, **kw):
     return _run(subprocess.call, *a, **kw)
 
-# TODO have an option for threaded runs that instead of prefixing and colorizing the output, it uses curses, and statically updates every threads stdout display. each thread gets a single line showing the current value of stdin. useful for when one threads output is drowning the others. # noqa
-# TODO add a name and color kwarg, which activate the prefixing and line coloring for multiple threaded runs. color is a bool, and iterates over a global cycle of the colors.
-# TODO actually just move all the threaded shell logic here. it doesnt belong in ec2. naming, colorizing, and keeping track of fails/successes.
+# TODO have an option for threaded runs that instead of prefixing and
+# colorizing the output, it uses curses, and statically updates every threads
+# stdout display. each thread gets a single line showing the current value of
+# stdin. useful for when one threads output is drowning the others. # noqa
+
+# TODO add a name and color kwarg, which activate the prefixing and line
+# coloring for multiple threaded runs. color is a bool, and iterates over a
+# global cycle of the colors.
+
+# TODO actually just move all the threaded shell logic here. it doesnt belong
+# in ec2. naming, colorizing, and keeping track of fails/successes.
+
 def run(*a,
         stream=None,
         echo=None,
@@ -145,7 +156,7 @@ def tempdir(cleanup=True, intemp=True):
         raise
     finally:
         if cleanup:
-            run(sudo(), 'rm -rf', path)
+            run('rm -rf', path)
 
 
 def dispatch_commands(_globals, _name_):
@@ -241,3 +252,18 @@ def _get_logfn(should_log):
 
 def ignore_closed_pipes():
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+
+def getch():
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        val = sys.stdin.read(1).lower()
+        if val == '\x03':
+            sys.exit(1)
+        else:
+            print(val, end=' ', file=sys.stderr, flush=True)
+            return val
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
