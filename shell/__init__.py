@@ -28,7 +28,8 @@ def _run(fn, *a, echo=False):
     cmd = _make_cmd(a)
     logfn = _get_logfn(echo or _state.get('echo') or _state.get('stream'))
     _echo(cmd, logfn)
-    return fn(cmd, executable='/bin/bash', stderr=subprocess.STDOUT, shell=True)
+    return fn(cmd, executable='/bin/bash', shell=True)
+
 
 def check_output(*a, **kw):
     return _run(subprocess.check_output, *a, **kw).decode('utf-8')
