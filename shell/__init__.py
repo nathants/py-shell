@@ -28,6 +28,7 @@ def _run(fn, *a, echo=False):
     cmd = _make_cmd(a)
     logfn = _get_logfn(echo or _state.get('echo') or _state.get('stream'))
     _echo(cmd, logfn)
+    _echo(cmd, logging.debug)
     return fn(cmd, executable='/bin/bash', shell=True)
 
 
@@ -71,6 +72,7 @@ def run(*a,
     cmd = _make_cmd(a)
     if (stream and echo is None) or echo or _state.get('echo') and echo is not False:
         _echo(cmd, _get_logfn(True))
+    _echo(cmd, logging.debug)
     kw = {'stdout': subprocess.PIPE,
           'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
     if warn:
