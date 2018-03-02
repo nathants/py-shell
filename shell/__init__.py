@@ -267,5 +267,7 @@ def getch():
             sys.exit(1)
         else:
             return val
+    except KeyboardInterrupt:
+        sys.exit(1)
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
