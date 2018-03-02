@@ -266,7 +266,6 @@ def getch():
         if val == '\x03':
             sys.exit(1)
         else:
-            print(val, end=' ', file=sys.stderr, flush=True)
             return val
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)

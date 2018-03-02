@@ -1,1 +1,1 @@
-git+https://github.com/nathants/py-util@a3d0bc9f1c37c213ddf0f798650d061bead715a8
+git+https://github.com/nathants/py-util@81d2569f92c0ff9dbeded38c710ed63682dd48af
