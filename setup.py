@@ -9,7 +9,7 @@ setuptools.setup(
     author_email='me@nathants.com',
     url='http://github.com/nathants/py-shell',
     packages=['shell'],
-    install_requires=['argh==0.26.1',
-                      'pyyaml==3.11'],
+    install_requires=['argh >0.26, <0.27',
+                      'pyyaml >3, <4'],
     description='for shelling out',
 )
