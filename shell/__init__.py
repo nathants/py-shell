@@ -17,7 +17,7 @@ import util.strings
 
 
 def _echo(cmd, logfn):
-    logfn('$(%s) [cwd=%s]' % (util.colors.yellow(cmd), os.getcwd()))
+    logfn('$ %s [cwd=%s]' % (util.colors.yellow(cmd), os.getcwd()))
 
 
 def _make_cmd(args):
