@@ -248,8 +248,8 @@ def _get_logfn(should_log):
             if hasattr(logging.root, '_ready'):
                 logging.info(x)
             else:
-                sys.stdout.write(x.rstrip() + '\n')
-                sys.stdout.flush()
+                sys.stderr.write(x.rstrip() + '\n')
+                sys.stderr.flush()
     return fn
 
 
