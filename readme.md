@@ -1,5 +1,4 @@
-for shelling out.
+### for shelling out
 
-readme coming soon, until then read the tests.
-
-tested against python 2.7 and 3.4.
+### installation
+`pip-3.6 install --process-dependency-links git+https://github.com/nathants/py-shell@7f141d4 # or some other git hash`
