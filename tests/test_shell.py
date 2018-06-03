@@ -46,6 +46,6 @@ def test_callback():
     assert 'asdf' in val
 
 def test_stdout_stderr():
-    assert {'stderr': 'err', 'stdout': 'out'} == util.dicts.take(shell.run('echo out; echo err 1>&2', warn=True), ['stderr', 'stdout'])
+    assert {'stderr': 'err', 'stdout': 'out'} == util.dicts.take(shell.run('echo out; echo err >&2', warn=True), ['stderr', 'stdout'])
     assert {'stderr': '',    'stdout': 'out'} == util.dicts.take(shell.run('echo out', warn=True), ['stderr', 'stdout'])
-    assert {'stderr': 'err', 'stdout': ''}    == util.dicts.take(shell.run('echo err 1>&2', warn=True), ['stderr', 'stdout'])
+    assert {'stderr': 'err', 'stdout': ''}    == util.dicts.take(shell.run('echo err >&2', warn=True), ['stderr', 'stdout'])
