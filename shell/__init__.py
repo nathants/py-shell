@@ -99,7 +99,7 @@ def run(*a,
             sys.exit(proc.returncode)
         else:
             output = '' if stream else output
-            raise AssertionError('%s\nexitcode=%s from cmd: %s, cwd: %s' % (output, proc.returncode, cmd, os.getcwd()))
+            raise AssertionError('\n%s\nexitcode=%s from cmd: %s, cwd: %s' % (output, proc.returncode, cmd, os.getcwd()))
     else:
         return output
 
