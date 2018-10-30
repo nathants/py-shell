@@ -1,4 +1,5 @@
 import argh
+import collections
 import contextlib
 import logging
 import os
@@ -15,14 +16,13 @@ import util.colors
 import util.hacks
 import util.strings
 
+_max_lines_memory = os.environ.get('SHELL_RUN_MAX_LINES_MEMORY', 50 * 1024)
 
 def _echo(cmd, logfn):
     logfn('$ %s [cwd=%s]' % (util.colors.yellow(cmd), os.getcwd()))
 
-
 def _make_cmd(args):
     return ' '.join(map(str, args))
-
 
 def _run(fn, *a, echo=False):
     cmd = _make_cmd(a)
@@ -31,30 +31,16 @@ def _run(fn, *a, echo=False):
     _echo(cmd, logging.debug)
     return fn(cmd, executable='/bin/bash', shell=True)
 
-
 def check_output(*a, **kw):
     return _run(subprocess.check_output, *a, **kw).decode('utf-8')
-
 
 def check_call(*a, **kw):
     return _run(subprocess.check_call, *a, **kw)
 
-
 def call(*a, **kw):
     return _run(subprocess.call, *a, **kw)
 
-# TODO have an option for threaded runs that instead of prefixing and
-# colorizing the output, it uses curses, and statically updates every threads
-# stdout display. each thread gets a single line showing the current value of
-# stdin. useful for when one threads output is drowning the others. # noqa
-
-# TODO add a name and color kwarg, which activate the prefixing and line
-# coloring for multiple threaded runs. color is a bool, and iterates over a
-# global cycle of the colors.
-
-# TODO actually just move all the threaded shell logic here. it doesnt belong
-# in ec2. naming, colorizing, and keeping track of fails/successes.
-
+# some notes on possible improvements: https://github.com/nathants/py-shell/blob/0a407c189f1fbf4f182be2c53a8116e66ca044a4/shell/__init__.py#L46
 def run(*a,
         stream=None,
         echo=None,
@@ -103,18 +89,14 @@ def run(*a,
     else:
         return output
 
-
 def listdir(path='.', abspath=False):
     return list_filtered(path, abspath, lambda *a: True)
-
 
 def dirs(path='.', abspath=False):
     return list_filtered(path, abspath, os.path.isdir)
 
-
 def files(path='.', abspath=False):
     return list_filtered(path, abspath, os.path.isfile)
-
 
 def list_filtered(path, abspath, predicate):
     path = os.path.expanduser(path)
@@ -122,7 +104,6 @@ def list_filtered(path, abspath, predicate):
     return [resolve(x) if abspath else x
             for x in sorted(os.listdir(path))
             if predicate(os.path.join(path, x))]
-
 
 @contextlib.contextmanager
 def cd(path='.'):
@@ -139,10 +120,9 @@ def cd(path='.'):
     finally:
         os.chdir(orig)
 
-
 @contextlib.contextmanager
 def tempdir(cleanup=True, intemp=True):
-    while True:
+    for _ in range(1000):
         try:
             letters = string.letters
         except AttributeError:
@@ -161,7 +141,6 @@ def tempdir(cleanup=True, intemp=True):
         if cleanup:
             run('rm -rf', path)
 
-
 def dispatch_commands(_globals, _name_):
     """
     dispatch all top level functions not starting with underscore
@@ -178,13 +157,11 @@ def dispatch_commands(_globals, _name_):
     except KeyboardInterrupt:
         sys.exit(1)
 
-
 def less(text):
     if text:
         text = util.strings.b64_encode(text)
         cmd = 'echo %(text)s | base64 -d | less -cR' % locals()
         check_call(cmd)
-
 
 @util.cached.func
 def sudo():
@@ -197,9 +174,7 @@ def sudo():
     except:
         return ''
 
-
 _state = {}
-
 
 def _set_state(key):
     @contextlib.contextmanager
@@ -216,15 +191,12 @@ def _set_state(key):
                 _state[key] = orig
     return fn
 
-
 set_stream = _set_state('stream')
-
 
 set_echo = _set_state('echo')
 
-
 def _process_lines(proc, log, callback=None, stream_only=False):
-    lines = []
+    lines = collections.deque([], _max_lines_memory)
     def process(line):
         line = line.decode('utf-8').rstrip()
         if line.strip():
@@ -239,8 +211,10 @@ def _process_lines(proc, log, callback=None, stream_only=False):
             break
         process(line)
     proc.wait()
-    return '\n'.join(lines)
-
+    if len(lines) == _max_lines_memory:
+        return f'#### WARN shell.run() truncated output to the last {_max_lines_memory} lines ####\n' + '\n'.join(lines)
+    else:
+        return '\n'.join(lines)
 
 def _get_logfn(should_log):
     def fn(x):
@@ -252,10 +226,8 @@ def _get_logfn(should_log):
                 sys.stderr.flush()
     return fn
 
-
 def ignore_closed_pipes():
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-
 
 def getch():
     fd = sys.stdin.fileno()
