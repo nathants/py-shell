@@ -51,7 +51,6 @@ def run(*a,
         zero=False,
         quiet=None,
         raw_cmd=False,
-        stream_only=False,
         hide_stderr=False):
     stream = stream or _state.get('stream') and stream is not False
     logfn = _get_logfn(stream)
@@ -74,7 +73,7 @@ def run(*a,
         proc.stdin.close()
     if popen:
         return proc
-    output = _process_lines(proc, logfn, callback, stream_only)
+    output = _process_lines(proc, logfn, callback)
     if warn:
         logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
         return {'stdout': output, 'stderr': proc.stderr.read().decode('utf-8').rstrip(), 'exitcode': proc.returncode, 'cmd': cmd}
@@ -195,14 +194,13 @@ set_stream = _set_state('stream')
 
 set_echo = _set_state('echo')
 
-def _process_lines(proc, log, callback=None, stream_only=False):
+def _process_lines(proc, log, callback=None):
     lines = collections.deque([], _max_lines_memory)
     def process(line):
         line = line.decode('utf-8').rstrip()
         if line.strip():
             log(line)
-            if not stream_only:
-                lines.append(line)
+            lines.append(line)
         if callback:
             callback(line)
     while True:
