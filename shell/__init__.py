@@ -1,4 +1,5 @@
 import argh
+import pool.thread
 import collections
 import contextlib
 import logging
@@ -59,9 +60,8 @@ def run(*a,
         _echo(cmd, _get_logfn(True))
     _echo(cmd, logging.debug)
     kw = {'stdout': subprocess.PIPE,
+          'stderr': subprocess.PIPE,
           'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
-    if warn:
-        kw['stderr'] = subprocess.PIPE
     if hide_stderr:
         kw['stderr'] = subprocess.DEVNULL
     if raw_cmd:
@@ -73,20 +73,23 @@ def run(*a,
         proc.stdin.close()
     if popen:
         return proc
-    output = _process_lines(proc, logfn, callback)
+    stderr = pool.thread.submit(_process_lines, proc.stderr, logfn)
+    stdout = _process_lines(proc.stdout, logfn, callback)
+    stderr = stderr.result()
+    proc.wait()
     if warn:
         logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
-        return {'stdout': output, 'stderr': proc.stderr.read().decode('utf-8').rstrip(), 'exitcode': proc.returncode, 'cmd': cmd}
+        return {'stdout': stdout, 'stderr': stderr, 'exitcode': proc.returncode, 'cmd': cmd}
     elif zero:
         return proc.returncode == 0
     elif proc.returncode != 0:
         if quiet:
             sys.exit(proc.returncode)
         else:
-            output = '' if stream else output
-            raise AssertionError('\n%s\nexitcode=%s from cmd: %s, cwd: %s' % (output, proc.returncode, cmd, os.getcwd()))
+            stdout = '' if stream else stdout
+            raise AssertionError('\nstderr:\n%s\nstdout:\n%s\nexitcode=%s from cmd: %s, cwd: %s' % (stderr, stdout, proc.returncode, cmd, os.getcwd()))
     else:
-        return output
+        return stdout
 
 def listdir(path='.', abspath=False):
     return list_filtered(path, abspath, lambda *a: True)
@@ -194,25 +197,25 @@ set_stream = _set_state('stream')
 
 set_echo = _set_state('echo')
 
-def _process_lines(proc, log, callback=None):
-    lines = collections.deque([], _max_lines_memory)
-    def process(line):
-        line = line.decode('utf-8').rstrip()
-        if line.strip():
-            log(line)
-            lines.append(line)
-        if callback:
-            callback(line)
-    while True:
-        line = proc.stdout.readline()
-        if not line:
-            break
-        process(line)
-    proc.wait()
-    if len(lines) == _max_lines_memory:
-        return f'#### WARN shell.run() truncated output to the last {_max_lines_memory} lines ####\n' + '\n'.join(lines)
-    else:
-        return '\n'.join(lines)
+def _process_lines(buffer, log, callback=None):
+    if buffer:
+        lines = collections.deque([], _max_lines_memory)
+        def process(line):
+            line = line.decode('utf-8').rstrip()
+            if line.strip():
+                log(line)
+                lines.append(line)
+            if callback:
+                callback(line)
+        while True:
+            line = buffer.readline()
+            if not line:
+                break
+            process(line)
+        if len(lines) == _max_lines_memory:
+            return f'#### WARN shell.run() truncated output to the last {_max_lines_memory} lines ####\n' + '\n'.join(lines)
+        else:
+            return '\n'.join(lines)
 
 def _get_logfn(should_log):
     def fn(x):
