@@ -1,5 +1,5 @@
 import argh
-import pool.thread
+import concurrent.futures
 import collections
 import contextlib
 import logging
@@ -73,9 +73,10 @@ def run(*a,
         proc.stdin.close()
     if popen:
         return proc
-    stderr = pool.thread.submit(_process_lines, proc.stderr, logfn)
-    stdout = _process_lines(proc.stdout, logfn, callback)
-    stderr = stderr.result()
+    with concurrent.futures.ThreadPoolExecutor(1) as pool:
+        stderr = pool.submit(_process_lines, proc.stderr, logfn)
+        stdout = _process_lines(proc.stdout, logfn, callback)
+        stderr = stderr.result()
     proc.wait()
     if warn:
         logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
