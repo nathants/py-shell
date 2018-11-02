@@ -79,7 +79,8 @@ def run(*a,
         stderr = stderr.result()
     proc.wait()
     if warn:
-        logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
+        if not quiet:
+            logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
         return {'stdout': stdout, 'stderr': stderr, 'exitcode': proc.returncode, 'cmd': cmd}
     elif zero:
         return proc.returncode == 0
