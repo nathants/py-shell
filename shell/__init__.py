@@ -246,3 +246,18 @@ def getch():
         sys.exit(1)
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+@contextlib.contextmanager
+def climb_git_root():
+    orig = os.getcwd()
+    while True:
+        assert os.getcwd() != '/'
+        if '.git' in dirs():
+            break
+        os.chdir('..')
+    try:
+        yield
+    except:
+        raise
+    finally:
+        os.chdir(orig)
