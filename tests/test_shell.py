@@ -1,4 +1,6 @@
 import os
+import subprocess
+import util.time
 import util.dicts
 import sys
 import pytest
@@ -47,5 +49,11 @@ def test_max_lines():
     cmd = 'for i in {1..4}; do echo foo$i; done'
     f = lambda: [x.split()[0] for x in shell.run(cmd).splitlines()]
     assert f() == ['foo1', 'foo2', 'foo3', 'foo4']
-    with mock.patch('shell._max_lines_memory', 2):
-        assert f() == ['####', 'foo3', 'foo4']
+    with mock.patch('shell._max_lines_memory', 3):
+        assert f() == ['####', 'foo2', 'foo3']
+
+def test_timeout():
+    with util.time.timer() as t:
+        with pytest.raises(AssertionError):
+            shell.run('sleep 3; echo foo', timeout=1)
+    assert int(t['seconds']) == 1

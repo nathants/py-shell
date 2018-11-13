@@ -1,4 +1,6 @@
 import argh
+import pool.thread
+import time
 import concurrent.futures
 import collections
 import contextlib
@@ -52,7 +54,9 @@ def run(*a,
         zero=False,
         quiet=None,
         raw_cmd=False,
+        timeout=0,
         hide_stderr=False):
+    start = time.time()
     stream = stream or _state.get('stream') and stream is not False
     logfn = _get_logfn(stream)
     cmd = _make_cmd(a)
@@ -73,11 +77,43 @@ def run(*a,
         proc.stdin.close()
     if popen:
         return proc
-    with concurrent.futures.ThreadPoolExecutor(1) as pool:
-        stderr = pool.submit(_process_lines, proc.stderr, logfn)
-        stdout = _process_lines(proc.stdout, logfn, callback)
-        stderr = stderr.result()
-    proc.wait()
+
+    stop = False
+    def process_lines(buffer, lines):
+        if buffer:
+            def process(line):
+                line = line.decode('utf-8').rstrip()
+                if line.strip():
+                    logfn(line)
+                    lines.append(line)
+                if callback:
+                    callback(line)
+            while not stop:
+                line = buffer.readline()
+                if not line:
+                    break
+                process(line)
+            if len(lines) == _max_lines_memory:
+                lines.appendleft(f'#### WARN shell.run() truncated output to the last {_max_lines_memory} lines ####')
+    stdout_lines = collections.deque([], _max_lines_memory)
+    stderr_lines = collections.deque([], _max_lines_memory)
+    stderr_thread = pool.thread.new(process_lines, proc.stderr, stderr_lines)
+    stdout_thread = pool.thread.new(process_lines, proc.stdout, stdout_lines)
+    try:
+        while True:
+            exit = proc.poll()
+            if exit is not None:
+                break
+            if timeout and time.time() - start > timeout:
+                proc.terminate()
+                raise AssertionError('\ntimed out after %s seconds from cmd: %s, cwd: %s' % (timeout, cmd, os.getcwd()))
+            time.sleep(.01)
+        stderr_thread.join()
+        stdout_thread.join()
+    finally:
+        stop = True
+    stderr = '\n'.join(stderr_lines)
+    stdout = '\n'.join(stdout_lines)
     if warn:
         if not quiet:
             logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
@@ -198,26 +234,6 @@ def _set_state(key):
 set_stream = _set_state('stream')
 
 set_echo = _set_state('echo')
-
-def _process_lines(buffer, log, callback=None):
-    if buffer:
-        lines = collections.deque([], _max_lines_memory)
-        def process(line):
-            line = line.decode('utf-8').rstrip()
-            if line.strip():
-                log(line)
-                lines.append(line)
-            if callback:
-                callback(line)
-        while True:
-            line = buffer.readline()
-            if not line:
-                break
-            process(line)
-        if len(lines) == _max_lines_memory:
-            return f'#### WARN shell.run() truncated output to the last {_max_lines_memory} lines ####\n' + '\n'.join(lines)
-        else:
-            return '\n'.join(lines)
 
 def _get_logfn(should_log):
     def fn(x):
