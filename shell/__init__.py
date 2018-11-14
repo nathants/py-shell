@@ -1,22 +1,21 @@
 import argh
-import pool.thread
-import time
-import concurrent.futures
 import collections
 import contextlib
 import logging
 import os
+import pool.thread
 import random
 import signal
 import string
 import subprocess
 import sys
 import termios
+import time
 import tty
 import types
 import util.cached
 import util.colors
-import util.hacks
+import util.misc
 import util.strings
 
 _max_lines_memory = os.environ.get('SHELL_RUN_MAX_LINES_MEMORY', 50 * 1024)
@@ -35,7 +34,12 @@ def _run(fn, *a, echo=False):
     return fn(cmd, executable='/bin/bash', shell=True)
 
 def check_output(*a, **kw):
-    return _run(subprocess.check_output, *a, **kw).decode('utf-8')
+    output = _run(subprocess.check_output, *a, **kw)
+    try:
+        output = output.decode('utf-8')
+    except:
+        logging.warn('failed to utf-8 decode output of cmd: %s', a)
+    return output
 
 def check_call(*a, **kw):
     return _run(subprocess.check_call, *a, **kw)
@@ -80,10 +84,15 @@ def run(*a,
     if popen:
         return proc
     stop = False
+    @util.misc.exceptions_kill_pid
     def process_lines(name, buffer, lines):
         if buffer:
             def process(line):
-                line = line.decode('utf-8').rstrip()
+                try:
+                    line = line.decode('utf-8')
+                except:
+                    logging.warn('failed to utf-8 decode cmd: %s', cmd)
+                line = line.rstrip()
                 if line.strip():
                     logfn(line)
                     lines.append(line)
