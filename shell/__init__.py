@@ -66,20 +66,21 @@ def run(*a,
     kw = {'stdout': subprocess.PIPE,
           'stderr': subprocess.PIPE,
           'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
+    if stdin and hasattr(stdin, 'read'):
+        kw['stdin'] = stdin
     if hide_stderr:
         kw['stderr'] = subprocess.DEVNULL
     if raw_cmd:
         proc = subprocess.Popen(a, **kw)
     else:
         proc = subprocess.Popen(cmd, shell=True, executable='/bin/bash', **kw)
-    if stdin:
+    if stdin and not hasattr(stdin, 'read'):
         proc.stdin.write(bytes(stdin, 'UTF-8'))
         proc.stdin.close()
     if popen:
         return proc
-
     stop = False
-    def process_lines(buffer, lines):
+    def process_lines(name, buffer, lines):
         if buffer:
             def process(line):
                 line = line.decode('utf-8').rstrip()
@@ -87,7 +88,7 @@ def run(*a,
                     logfn(line)
                     lines.append(line)
                 if callback:
-                    callback(line)
+                    callback(name, line)
             while not stop:
                 line = buffer.readline()
                 if not line:
@@ -97,8 +98,8 @@ def run(*a,
                 lines.appendleft(f'#### WARN shell.run() truncated output to the last {_max_lines_memory} lines ####')
     stdout_lines = collections.deque([], _max_lines_memory)
     stderr_lines = collections.deque([], _max_lines_memory)
-    stderr_thread = pool.thread.new(process_lines, proc.stderr, stderr_lines)
-    stdout_thread = pool.thread.new(process_lines, proc.stdout, stdout_lines)
+    stderr_thread = pool.thread.new(process_lines, 'stderr', proc.stderr, stderr_lines)
+    stdout_thread = pool.thread.new(process_lines, 'stdout', proc.stdout, stdout_lines)
     try:
         while True:
             exit = proc.poll()

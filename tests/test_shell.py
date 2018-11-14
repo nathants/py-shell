@@ -37,8 +37,8 @@ def test_excepts_run():
 
 def test_callback():
     val = []
-    shell.run('echo asdf', callback=lambda x: val.append(x))
-    assert 'asdf' in val
+    shell.run('echo asdf; echo 123 1>&2', callback=lambda name, x: val.append([name, x]))
+    assert val == [['stdout', 'asdf'], ['stderr', '123']]
 
 def test_stdout_stderr():
     assert {'stderr': 'err', 'stdout': 'out'} == util.dicts.take(shell.run('echo out; echo err >&2', warn=True), ['stderr', 'stdout'])
