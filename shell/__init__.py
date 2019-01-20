@@ -92,12 +92,13 @@ def run(*a,
                     line = line.decode('utf-8')
                 except:
                     logging.warn('failed to utf-8 decode cmd: %s', cmd)
-                line = line.rstrip()
-                if line.strip():
-                    logfn(line)
-                    lines.append(line)
-                if callback:
-                    callback(name, line)
+                else:
+                    line = line.rstrip()
+                    if line.strip():
+                        logfn(line)
+                        lines.append(line)
+                    if callback:
+                        callback(name, line)
             while not stop:
                 line = buffer.readline()
                 if not line:
