@@ -1,4 +1,8 @@
 ### for shelling out
 
 ### installation
-`pip install --process-dependency-links git+https://github.com/nathants/py-shell@7f141d4 # or some other git hash`
+```
+git clone https://github.com/nathants/py-shell
+cd py-shell
+pip install -r requirements.txt .
+```
