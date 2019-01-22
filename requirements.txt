@@ -1,4 +1,4 @@
 argh >0.26, <0.27
 pyyaml >3, <4
 git+https://github.com/nathants/py-util@fa60dbf761a61beb94614af89240fd5986d26786
-git+https://github.com/nathants/py-pool@51bddeb322a3abb2c493a3d3d3d0136590e49068
+git+https://github.com/nathants/py-pool@31dae540c2b7d581cb81301b0e5e72fdfe233dff
