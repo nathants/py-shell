@@ -157,11 +157,11 @@ def list_filtered(path, abspath, predicate):
             if predicate(os.path.join(path, x))]
 
 @contextlib.contextmanager
-def cd(path='.'):
+def cd(path='.', mkdir=True):
     orig = os.path.abspath(os.getcwd())
     if path:
         path = os.path.expanduser(path)
-        if not os.path.isdir(path):
+        if not os.path.isdir(path) and mkdir:
             run('mkdir -p', path)
         os.chdir(path)
     try:
