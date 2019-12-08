@@ -10,6 +10,6 @@ setuptools.setup(
     packages=['shell'],
     python_requires='>=3.6',
     install_requires=['argh >0.26, <0.27',
-                      'pyyaml >3, <4'],
+                      'pyyaml >4, <6'],
     description='for shelling out',
 )
