@@ -1,4 +1,5 @@
 import argh
+import tempfile
 import collections
 import contextlib
 import logging
@@ -173,16 +174,10 @@ def cd(path='.', mkdir=True):
 
 @contextlib.contextmanager
 def tempdir(cleanup=True, intemp=True):
-    for _ in range(1000):
-        try:
-            letters = string.letters
-        except AttributeError:
-            letters = string.ascii_letters
-        path = ''.join(random.choice(letters) for _ in range(20))
-        path = os.path.join('/tmp', path) if intemp else path
-        if not os.path.exists(path):
-            break
-    run('mkdir -p', path)
+    if intemp:
+        path = tempfile.mkdtemp()
+    else:
+        path = tempfile.mkdtemp(dir='.')
     try:
         with cd(path):
             yield path
@@ -190,6 +185,7 @@ def tempdir(cleanup=True, intemp=True):
         raise
     finally:
         if cleanup:
+            assert path != '/', 'fatal: cannot rm /'
             run('rm -rf', path)
 
 def dispatch_commands(_globals, _name_):

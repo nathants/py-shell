@@ -1,5 +1,4 @@
 import os
-import subprocess
 import util.time
 import util.dicts
 import sys
@@ -21,6 +20,29 @@ def setup_function(fn):
 def teardown_function(fn):
     fn.ctx.__exit__(None, None, None)
     sys.path.pop(0)
+
+def test_tempdir():
+    orig = os.getcwd()
+
+    with shell.tempdir():
+        path = os.getcwd()
+        assert orig != path
+        assert path.startswith('/tmp/')
+    assert not os.path.isdir(path)
+
+    with shell.tempdir(intemp=False):
+        path = os.getcwd()
+        assert orig != path
+        assert path.startswith(f'{orig}/')
+    assert not os.path.isdir(path)
+
+    with shell.tempdir(cleanup=False):
+        path = os.getcwd()
+    try:
+        assert os.path.isdir(path)
+    finally:
+        assert path != '/'
+        shell.run('rm -rf', path)
 
 def test_output_run():
     assert 'asdf' == shell.run('echo asdf')
