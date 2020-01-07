@@ -25,7 +25,7 @@ def _echo(cmd, logfn):
     logfn('$ %s [cwd=%s]' % (util.colors.yellow(cmd), os.getcwd()))
 
 def _make_cmd(args):
-    return ' '.join(map(str, args))
+    return 'set -eou pipefail; ' + ' '.join(map(str, args))
 
 def _run(fn, *a, echo=False):
     cmd = _make_cmd(a)
