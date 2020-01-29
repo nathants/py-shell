@@ -1,13 +1,12 @@
 import argh
+import shutil
 import tempfile
 import collections
 import contextlib
 import logging
 import os
 import pool.thread
-import random
 import signal
-import string
 import subprocess
 import sys
 import termios
@@ -163,7 +162,7 @@ def cd(path='.', mkdir=True):
     if path:
         path = os.path.expanduser(path)
         if not os.path.isdir(path) and mkdir:
-            run('mkdir -p', path)
+            os.makedirs(path)
         os.chdir(path)
     try:
         yield
@@ -186,7 +185,7 @@ def tempdir(cleanup=True, intemp=True):
     finally:
         if cleanup:
             assert path != '/', 'fatal: cannot rm /'
-            run('rm -rf', path)
+            shutil.rmtree(path)
 
 def dispatch_commands(_globals, _name_):
     """
