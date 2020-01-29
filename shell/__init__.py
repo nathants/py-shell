@@ -270,16 +270,21 @@ def getch():
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 @contextlib.contextmanager
-def climb_git_root():
+def climb_until_exists(path):
     orig = os.getcwd()
-    while True:
-        assert os.getcwd() != '/'
-        if '.git' in dirs():
-            break
-        os.chdir('..')
     try:
+        while True:
+            assert os.getcwd() != '/'
+            if os.path.exists(path):
+                break
+            os.chdir('..')
         yield
     except:
         raise
     finally:
         os.chdir(orig)
+
+@contextlib.contextmanager
+def climb_git_root():
+    with climb_until_exists('.git'):
+        yield
