@@ -133,6 +133,8 @@ def run(*a,
         return proc.returncode == 0
     elif proc.returncode != 0:
         if quiet:
+            print(stderr, file=sys.stderr)
+            print(stdout)
             sys.exit(proc.returncode)
         else:
             stdout = '' if stream else stdout
