@@ -70,6 +70,7 @@ def run(*a,
     kw = {'stdout': subprocess.PIPE,
           'stderr': subprocess.PIPE,
           'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
+    cwd = os.getcwd()
     if stdin and hasattr(stdin, 'read'):
         kw['stdin'] = stdin
     if hide_stderr:
@@ -117,7 +118,7 @@ def run(*a,
                 break
             if timeout and time.time() - start > timeout:
                 proc.terminate()
-                raise AssertionError('\ntimed out after %s seconds from cmd: %s, cwd: %s' % (timeout, cmd, os.getcwd()))
+                raise AssertionError(f'timed out after {timeout} seconds from cmd: {cmd}, cwd: {cwd}')
             time.sleep(.01)
         stderr_thread.join()
         stdout_thread.join()
@@ -138,7 +139,7 @@ def run(*a,
             sys.exit(proc.returncode)
         else:
             stdout = '' if stream else stdout
-            raise AssertionError('\nstderr:\n%s\nstdout:\n%s\nexitcode=%s from cmd: %s, cwd: %s' % (stderr, stdout, proc.returncode, cmd, os.getcwd()))
+            raise AssertionError(util.strings.indent(f'\nstderr:\n{stderr}\nstdout:\n{stdout}', 2) + f'\nexitcode={proc.returncode} from cmd: {cmd}, cwd: {cwd}')
     else:
         return stdout
 
