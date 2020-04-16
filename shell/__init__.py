@@ -127,8 +127,6 @@ def run(*a,
     stderr = '\n'.join(stderr_lines)
     stdout = '\n'.join(stdout_lines)
     if warn:
-        if not quiet:
-            logfn('exit-code=%s from cmd: %s' % (proc.returncode, cmd))
         return {'stdout': stdout, 'stderr': stderr, 'exitcode': proc.returncode, 'cmd': cmd}
     elif zero:
         return proc.returncode == 0
