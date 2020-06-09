@@ -28,7 +28,7 @@ def _make_cmd(args):
 
 def _run(fn, *a, echo=False):
     cmd = _make_cmd(a)
-    logfn = _get_logfn(echo or _state.get('echo') or _state.get('stream'))
+    logfn = _get_logfn(echo or set.get('echo') or set.get('stream'))
     _echo(cmd, logfn)
     _echo(cmd, logging.debug)
     return fn(cmd, executable='/bin/bash', shell=True)
@@ -58,18 +58,20 @@ def run(*a,
         zero=False,
         quiet=None,
         raw_cmd=False,
+        bufsize=None,
         timeout=0,
         hide_stderr=False):
     start = time.time()
-    stream = stream or _state.get('stream') and stream is not False
+    stream = stream or set.get('stream') and stream is not False
     logfn = _get_logfn(stream)
     cmd = _make_cmd(a)
-    if (stream and echo is None) or echo or _state.get('echo') and echo is not False:
+    if (stream and echo is None) or echo or set.get('echo') and echo is not False:
         _echo(cmd, _get_logfn(True))
     _echo(cmd, logging.debug)
     kw = {'stdout': subprocess.PIPE,
           'stderr': subprocess.PIPE,
-          'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
+          'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL,
+          'bufsize': bufsize}
     cwd = os.getcwd()
     if stdin and hasattr(stdin, 'read'):
         kw['stdin'] = stdin
@@ -221,26 +223,28 @@ def sudo():
     except:
         return ''
 
-_state = {}
+set = {} # define "stream" or "echo" to any value to enable those without using the context managers of the same name
 
-def _set_state(key):
+def _set(key):
     @contextlib.contextmanager
     def fn():
-        orig = _state.get(key)
-        _state[key] = True
+        orig = set.get(key)
+        set[key] = True
         try:
             yield
         except:
             raise
         finally:
-            del _state[key]
             if orig is not None:
-                _state[key] = orig
+                set[key] = orig
+            else:
+                del set[key]
     return fn
 
-set_stream = _set_state('stream')
-
-set_echo = _set_state('echo')
+set_stream = _set('stream')
+stream     = _set('stream')
+set_echo = _set('echo')
+echo     = _set('echo')
 
 def _get_logfn(should_log):
     def fn(x):
