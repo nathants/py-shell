@@ -34,12 +34,7 @@ def _run(fn, *a, echo=False):
     return fn(cmd, executable='/bin/bash', shell=True)
 
 def check_output(*a, **kw):
-    output = _run(subprocess.check_output, *a, **kw)
-    try:
-        output = output.decode('utf-8')
-    except:
-        logging.warn('failed to utf-8 decode output of cmd: %s', a)
-    return output
+    return _run(subprocess.check_output, *a, **kw).decode('utf-8')
 
 def check_call(*a, **kw):
     return _run(subprocess.check_call, *a, **kw)
@@ -47,21 +42,15 @@ def check_call(*a, **kw):
 def call(*a, **kw):
     return _run(subprocess.call, *a, **kw)
 
-# some notes on possible improvements: https://github.com/nathants/py-shell/blob/0a407c189f1fbf4f182be2c53a8116e66ca044a4/shell/__init__.py#L46
 def run(*a,
         stream=None,
         echo=None,
         stdin='',
-        popen=False,
         callback=None,
         warn=False,
-        zero=False,
-        quiet=None,
         raw_cmd=False,
-        bufsize=None,
-        timeout=0,
-        hide_stderr=False):
-    start = time.time()
+        timeout=0):
+    start = time.monotonic()
     stream = stream or set.get('stream') and stream is not False
     logfn = _get_logfn(stream)
     cmd = _make_cmd(a)
@@ -70,45 +59,33 @@ def run(*a,
     _echo(cmd, logging.debug)
     kw = {'stdout': subprocess.PIPE,
           'stderr': subprocess.PIPE,
-          'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL,
-          'bufsize': bufsize}
+          'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
     cwd = os.getcwd()
     if stdin and hasattr(stdin, 'read'):
         kw['stdin'] = stdin
-    if hide_stderr:
-        kw['stderr'] = subprocess.DEVNULL
     if raw_cmd:
         proc = subprocess.Popen(a, **kw)
     else:
         proc = subprocess.Popen(cmd, shell=True, executable='/bin/bash', **kw)
     if stdin and not hasattr(stdin, 'read'):
-        proc.stdin.write(bytes(stdin, 'UTF-8'))
+        proc.stdin.write(bytes(stdin, 'utf-8'))
         proc.stdin.close()
-    if popen:
-        return proc
     stop = False
     @util.misc.exceptions_kill_pid
     def process_lines(name, buffer, lines):
-        if buffer:
-            def process(line):
-                try:
-                    line = line.decode('utf-8')
-                except:
-                    logging.warn('failed to utf-8 decode cmd: %s', cmd)
-                else:
-                    line = line.rstrip()
-                    if line.strip():
-                        logfn(line)
-                        lines.append(line)
-                    if callback:
-                        callback(name, line)
-            while not stop:
-                line = buffer.readline()
-                if not line:
-                    break
-                process(line)
-            if len(lines) == _max_lines_memory:
-                lines.appendleft(f'#### WARN shell.run() truncated output to the last {_max_lines_memory} lines ####')
+        while not stop:
+            line = buffer.readline()
+            if not line:
+                break
+            try:
+                line = line.decode('utf-8').rstrip()
+            except:
+                logging.warn('failed to utf-8 decode cmd: %s', cmd)
+            else:
+                logfn(line)
+                lines.append(line)
+                if callback:
+                    callback(name, line)
     stdout_lines = collections.deque([], _max_lines_memory)
     stderr_lines = collections.deque([], _max_lines_memory)
     stderr_thread = pool.thread.new(process_lines, 'stderr', proc.stderr, stderr_lines)
@@ -118,7 +95,7 @@ def run(*a,
             exit = proc.poll()
             if exit is not None:
                 break
-            if timeout and time.time() - start > timeout:
+            if timeout and time.monotonic() - start > timeout:
                 proc.terminate()
                 raise AssertionError(f'timed out after {timeout} seconds from cmd: {cmd}, cwd: {cwd}')
             time.sleep(.01)
@@ -130,16 +107,11 @@ def run(*a,
     stdout = '\n'.join(stdout_lines)
     if warn:
         return {'stdout': stdout, 'stderr': stderr, 'exitcode': proc.returncode, 'cmd': cmd}
-    elif zero:
-        return proc.returncode == 0
     elif proc.returncode != 0:
-        if quiet:
-            print(stderr, file=sys.stderr)
-            print(stdout)
-            sys.exit(proc.returncode)
-        else:
-            stdout = '' if stream else stdout
-            raise AssertionError(util.strings.indent(f'\nstderr:\n{stderr}\nstdout:\n{stdout}', 2) + f'\nexitcode={proc.returncode} from cmd: {cmd}, cwd: {cwd}')
+        print(stderr, file=sys.stderr)
+        print(stdout, flush=True)
+        print(f'{cmd} [exitcode={proc.returncode} cwd={cwd}]', file=sys.stderr, flush=True)
+        sys.exit(proc.returncode)
     else:
         return stdout
 
