@@ -42,6 +42,41 @@ def check_call(*a, **kw):
 def call(*a, **kw):
     return _run(subprocess.call, *a, **kw)
 
+def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None):
+    cwd = os.getcwd()
+    cmd = ' '.join(map(str, a)),
+    start = time.monotonic()
+    _echo(cmd, logging.debug)
+    if set.get('stream') or set.get('echo'):
+        _echo(cmd, _get_logfn(True))
+    proc = subprocess.Popen(
+        cmd,
+        shell=True,
+        executable='/bin/bash',
+        stdout=stdout,
+        stderr=subprocess.PIPE,
+        stdin=stdin or subprocess.DEVNULL,
+    )
+    if stdout == subprocess.PIPE:
+        stdout = []
+        while True:
+            assert not timeout or time.monotonic() - start < timeout, f'timed out after {timeout} seconds from cmd: {cmd}, cwd: {cwd}'
+            line = proc.stdout.readline()
+            if not line:
+                break
+            stdout.append(line.decode())
+    while True:
+        assert not timeout or time.monotonic() - start < timeout, f'timed out after {timeout} seconds from cmd: {cmd}, cwd: {cwd}'
+        exit = proc.poll()
+        if exit is not None:
+            break
+        time.sleep(.01)
+    try:
+        stdout = ''.join(stdout).rstrip()
+    except TypeError:
+        stdout = None
+    return {'exitcode': exit, 'stdout': stdout, 'stderr': proc.stderr.read().decode().rstrip()}
+
 def run(*a,
         stream=None,
         echo=None,
@@ -92,12 +127,10 @@ def run(*a,
     stdout_thread = pool.thread.new(process_lines, 'stdout', proc.stdout, stdout_lines)
     try:
         while True:
+            assert not timeout or time.monotonic() - start < timeout, f'timed out after {timeout} seconds from cmd: {cmd}, cwd: {cwd}'
             exit = proc.poll()
             if exit is not None:
                 break
-            if timeout and time.monotonic() - start > timeout:
-                proc.terminate()
-                raise AssertionError(f'timed out after {timeout} seconds from cmd: {cmd}, cwd: {cwd}')
             time.sleep(.01)
         stderr_thread.join()
         stdout_thread.join()

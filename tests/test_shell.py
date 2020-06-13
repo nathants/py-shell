@@ -54,13 +54,13 @@ def test_stdin():
     assert 'asdf' == shell.run('cat -', stdin='asdf')
 
 def test_excepts_run():
-    with pytest.raises(Exception):
+    with pytest.raises(SystemExit):
         shell.run('false')
 
 def test_callback():
     val = []
     shell.run('echo asdf; echo 123 1>&2', callback=lambda name, x: val.append([name, x]))
-    assert val == [['stdout', 'asdf'], ['stderr', '123']]
+    assert sorted(val) == sorted([['stdout', 'asdf'], ['stderr', '123']])
 
 def test_stdout_stderr():
     assert {'stderr': 'err', 'stdout': 'out'} == util.dicts.take(shell.run('echo out; echo err >&2', warn=True), ['stderr', 'stdout'])
@@ -72,10 +72,16 @@ def test_max_lines():
     f = lambda: [x.split()[0] for x in shell.run(cmd).splitlines()]
     assert f() == ['foo1', 'foo2', 'foo3', 'foo4']
     with mock.patch('shell._max_lines_memory', 3):
-        assert f() == ['####', 'foo2', 'foo3']
+        assert f() == ['foo2', 'foo3', 'foo4']
 
 def test_timeout():
     with util.time.timer() as t:
         with pytest.raises(AssertionError):
             shell.run('sleep 3; echo foo', timeout=1)
     assert int(t['seconds']) == 1
+
+def test_warn():
+    assert shell.warn('false') == {'exitcode': 1, 'stderr': '', 'stdout': ''}
+    assert shell.warn('true')  == {'exitcode': 0, 'stderr': '', 'stdout': ''}
+    assert shell.warn('echo a; echo b 1>&2; exit 3')  == {'exitcode': 3, 'stderr': 'b', 'stdout': 'a'}
+    assert shell.warn('echo a; echo b 1>&2; exit 3', stdout=None)  == {'exitcode': 3, 'stderr': 'b', 'stdout': None}
