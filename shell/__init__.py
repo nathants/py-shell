@@ -44,7 +44,7 @@ def call(*a, **kw):
 
 def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None):
     cwd = os.getcwd()
-    cmd = ' '.join(map(str, a)),
+    cmd = _make_cmd(a)
     start = time.monotonic()
     _echo(cmd, logging.debug)
     if set.get('stream') or set.get('echo'):
