@@ -49,6 +49,13 @@ def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None):
     _echo(cmd, logging.debug)
     if set.get('stream') or set.get('echo'):
         _echo(cmd, _get_logfn(True))
+    stdin_bytes = None
+    if isinstance(stdin, bytes):
+        stdin_bytes = stdin
+        stdin = subprocess.PIPE
+    elif isinstance(stdin, str):
+        stdin_bytes = stdin.encode()
+        stdin = subprocess.PIPE
     proc = subprocess.Popen(
         cmd,
         shell=True,
@@ -57,6 +64,9 @@ def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None):
         stderr=subprocess.PIPE,
         stdin=stdin or subprocess.DEVNULL,
     )
+    if stdin_bytes:
+        proc.stdin.write(stdin_bytes)
+        proc.stdin.close()
     if stdout == subprocess.PIPE:
         stdout = collections.deque([], _max_lines_memory)
         while True:
