@@ -18,7 +18,7 @@ import util.colors
 import util.misc
 import util.strings
 
-_max_lines_memory = os.environ.get('SHELL_RUN_MAX_LINES_MEMORY', 50 * 1024)
+_max_lines_memory = os.environ.get('SHELL_RUN_MAX_LINES_MEMORY', 64 * 1024)
 
 def _echo(cmd, logfn):
     logfn('$ %s [cwd=%s]' % (util.colors.yellow(cmd), os.getcwd()))
@@ -58,7 +58,7 @@ def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None):
         stdin=stdin or subprocess.DEVNULL,
     )
     if stdout == subprocess.PIPE:
-        stdout = []
+        stdout = collections.deque([], _max_lines_memory)
         while True:
             assert not timeout or time.monotonic() - start < timeout, f'timed out after {timeout} seconds from cmd: {cmd}, cwd: {cwd}'
             line = proc.stdout.readline()
@@ -75,7 +75,7 @@ def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None):
         stdout = ''.join(stdout).rstrip()
     except TypeError:
         stdout = None
-    return {'exitcode': exit, 'stdout': stdout, 'stderr': proc.stderr.read().decode().rstrip()}
+    return {'exitcode': exit, 'stdout': stdout, 'stderr': proc.stderr.read().decode().rstrip(), 'cmd': cmd}
 
 def run(*a,
         stream=None,
