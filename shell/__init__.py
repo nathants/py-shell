@@ -85,7 +85,7 @@ def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None):
         stdout = ''.join(stdout).rstrip()
     except TypeError:
         stdout = None
-    return {'exitcode': exit, 'stdout': stdout, 'stderr': proc.stderr.read().decode().rstrip(), 'cmd': cmd}
+    return {'exitcode': exit, 'stdout': stdout, 'stderr': proc.stderr.read().decode().rstrip(), 'cmd': cmd, 'cwd': cwd}
 
 def run(*a,
         stream=None,
