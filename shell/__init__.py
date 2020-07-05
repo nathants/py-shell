@@ -154,9 +154,12 @@ def run(*a,
         print(stderr, file=sys.stderr)
         print(stdout, flush=True)
         print(f'{cmd} [exitcode={proc.returncode} cwd={cwd}]', file=sys.stderr, flush=True)
-        sys.exit(proc.returncode)
+        raise ExitCode(proc.returncode, stdout, stderr)
     else:
         return stdout
+
+class ExitCode(Exception):
+    pass
 
 def listdir(path='.', abspath=False):
     return list_filtered(path, abspath, lambda *a: True)

@@ -54,7 +54,7 @@ def test_stdin():
     assert 'asdf' == shell.run('cat -', stdin='asdf')
 
 def test_excepts_run():
-    with pytest.raises(SystemExit):
+    with pytest.raises(shell.ExitCode):
         shell.run('false')
 
 def test_callback():
@@ -81,7 +81,17 @@ def test_timeout():
     assert int(t['seconds']) == 1
 
 def test_warn():
-    assert shell.warn('false') == {'exitcode': 1, 'stderr': '', 'stdout': ''}
-    assert shell.warn('true')  == {'exitcode': 0, 'stderr': '', 'stdout': ''}
-    assert shell.warn('echo a; echo b 1>&2; exit 3')  == {'exitcode': 3, 'stderr': 'b', 'stdout': 'a'}
-    assert shell.warn('echo a; echo b 1>&2; exit 3', stdout=None)  == {'exitcode': 3, 'stderr': 'b', 'stdout': None}
+    result = shell.warn('false')
+    result.pop('cwd')
+    assert result == {'exitcode': 1, 'stderr': '', 'stdout': '', 'cmd': 'set -eou pipefail; false'}
+    result = shell.warn('true')
+    result.pop('cwd')
+    assert result  == {'exitcode': 0, 'stderr': '', 'stdout': '', 'cmd': 'set -eou pipefail; true'}
+    result = shell.warn('echo a; echo b 1>&2; exit 3')
+    result.pop('cwd')
+    result.pop('cmd')
+    assert result == {'exitcode': 3, 'stderr': 'b', 'stdout': 'a'}
+    result = shell.warn('echo a; echo b 1>&2; exit 3', stdout=None)
+    result.pop('cwd')
+    result.pop('cmd')
+    assert result  == {'exitcode': 3, 'stderr': 'b', 'stdout': None}
