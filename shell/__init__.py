@@ -42,8 +42,8 @@ def check_call(*a, **kw):
 def call(*a, **kw):
     return _run(subprocess.call, *a, **kw)
 
-def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None):
-    cwd = os.getcwd()
+def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None, cwd=None, env=None):
+    cwd = cwd or os.getcwd()
     cmd = _make_cmd(a)
     start = time.monotonic()
     _echo(cmd, logging.debug)
@@ -63,6 +63,8 @@ def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None):
         stdout=stdout,
         stderr=subprocess.PIPE,
         stdin=stdin or subprocess.DEVNULL,
+        cwd=cwd,
+        env=env,
     )
     if stdin_bytes:
         proc.stdin.write(stdin_bytes)
@@ -94,6 +96,8 @@ def run(*a,
         callback=None,
         warn=False,
         raw_cmd=False,
+        cwd=None,
+        env=None,
         timeout=0):
     start = time.monotonic()
     stream = stream or set.get('stream') and stream is not False
@@ -104,8 +108,10 @@ def run(*a,
     _echo(cmd, logging.debug)
     kw = {'stdout': subprocess.PIPE,
           'stderr': subprocess.PIPE,
-          'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL}
-    cwd = os.getcwd()
+          'stdin': subprocess.PIPE if stdin else subprocess.DEVNULL,
+          'env': env}
+    cwd = cwd or os.getcwd()
+    kw['cwd'] = cwd
     if stdin and hasattr(stdin, 'read'):
         kw['stdin'] = stdin
     if raw_cmd:
