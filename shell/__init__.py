@@ -77,6 +77,7 @@ def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None, cwd=None, env=Non
             if not line:
                 break
             stdout.append(line.decode())
+        proc.stdout.close()
     while True:
         assert not timeout or time.monotonic() - start < timeout, f'timed out after {timeout} seconds from cmd: {cmd}, cwd: {cwd}'
         exit = proc.poll()
@@ -87,7 +88,9 @@ def warn(*a, stdin=None, stdout=subprocess.PIPE, timeout=None, cwd=None, env=Non
         stdout = ''.join(stdout).rstrip()
     except TypeError:
         stdout = None
-    return {'exitcode': exit, 'stdout': stdout, 'stderr': proc.stderr.read().decode().rstrip(), 'cmd': cmd, 'cwd': cwd}
+    result = {'exitcode': exit, 'stdout': stdout, 'stderr': proc.stderr.read().decode().rstrip(), 'cmd': cmd, 'cwd': cwd}
+    proc.stderr.close()
+    return result
 
 def run(*a,
         stream=None,
@@ -137,6 +140,7 @@ def run(*a,
                 lines.append(line)
                 if callback:
                     callback(name, line)
+        buffer.close()
     stdout_lines = collections.deque([], _max_lines_memory)
     stderr_lines = collections.deque([], _max_lines_memory)
     stderr_thread = pool.thread.new(process_lines, 'stderr', proc.stderr, stderr_lines)
