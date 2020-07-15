@@ -1,3 +1,4 @@
+import argparse
 import argh
 import shutil
 import tempfile
@@ -218,11 +219,21 @@ def tempdir(cleanup=True, intemp=True):
             assert path != '/', 'fatal: cannot rm /'
             shutil.rmtree(path)
 
+def shorter_argparse_help():
+    _format_help = argparse.HelpFormatter._Section.format_help
+    def format_help(self):
+        val = _format_help(self)
+        if len(self.items) == 3 and '.' in val:
+            val = '\n'.join([x.split('.')[0] for x in val.splitlines() if not x.startswith(' ' * 10)])
+        return val
+    argparse.HelpFormatter._Section.format_help = format_help
+
 def dispatch_commands(_globals, _name_):
     """
     dispatch all top level functions not starting with underscore
     >>> # dispatch_commands(globals(), __name__)
     """
+    shorter_argparse_help()
     try:
         argh.dispatch_commands(sorted([
             v for k, v in _globals.items()
