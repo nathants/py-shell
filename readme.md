@@ -1,4 +1,4 @@
-### for shelling out
+# py-shell
 
 ### installation
 ```
