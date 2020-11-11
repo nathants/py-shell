@@ -233,7 +233,6 @@ def dispatch_commands(_globals, _name_):
     dispatch all top level functions not starting with underscore
     >>> # dispatch_commands(globals(), __name__)
     """
-    shorter_argparse_help()
     try:
         argh.dispatch_commands([
             v for k, v in _globals.items()
