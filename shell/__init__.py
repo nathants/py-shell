@@ -104,10 +104,13 @@ def run(*a,
         env=None,
         timeout=0):
     start = time.monotonic()
-    stream = stream or set.get('stream') and stream is not False
+    if stream is None:
+        stream = set.get('stream')
     logfn = _get_logfn(stream)
     cmd = _make_cmd(a)
-    if (stream and echo is None) or echo or set.get('echo') and echo is not False:
+    if echo is None:
+        echo = set.get('echo')
+    if echo or (stream and echo is None):
         _echo(cmd, _get_logfn(True))
     _echo(cmd, logging.debug)
     kw = {'stdout': subprocess.PIPE,
@@ -162,9 +165,11 @@ def run(*a,
     if warn:
         return {'stdout': stdout, 'stderr': stderr, 'exitcode': proc.returncode, 'cmd': cmd}
     elif proc.returncode != 0:
-        print(stderr, file=sys.stderr)
-        print(stdout, flush=True)
-        print(f'{cmd} [exitcode={proc.returncode} cwd={cwd}]', file=sys.stderr, flush=True)
+        if stream:
+            print(stderr, file=sys.stderr)
+            print(stdout, flush=True)
+        if stream or echo:
+            print(f'{cmd} [exitcode={proc.returncode} cwd={cwd}]', file=sys.stderr, flush=True)
         raise ExitCode(proc.returncode, stdout, stderr)
     else:
         return stdout
