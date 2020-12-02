@@ -170,7 +170,7 @@ def run(*a,
             print(stdout, flush=True)
         if stream or echo:
             print(f'{cmd} [exitcode={proc.returncode} cwd={cwd}]', file=sys.stderr, flush=True)
-        raise ExitCode(proc.returncode, stdout, stderr)
+        raise ExitCode(cmd, cwd, proc.returncode, stdout, stderr)
     else:
         return stdout
 
