@@ -8,6 +8,7 @@ setuptools.setup(
     author_email='me@nathants.com',
     url='http://github.com/nathants/py-shell',
     packages=['shell'],
+    package_data = {'shell': ['py.typed']},
     python_requires='>=3.6',
     install_requires=['argh >0.26, <0.27',
                       'pyyaml >4, <6'],

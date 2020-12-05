@@ -1,3 +1,4 @@
+from typing import Dict, Any
 import argparse
 import argh
 import shutil
@@ -266,7 +267,7 @@ def sudo():
     except:
         return ''
 
-set = {} # define "stream" or "echo" to any value to enable those without using the context managers of the same name
+set: Dict[str, Any] = {} # define "stream" or "echo" to any value to enable those without using the context managers of the same name
 
 def _set(key):
     @contextlib.contextmanager
