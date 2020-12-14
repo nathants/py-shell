@@ -176,7 +176,11 @@ def run(*a,
         return stdout
 
 class ExitCode(Exception):
-    pass
+    def __str__(self):
+        cmd, cwd, exitcode, stdout, stderr = self.args
+        stdout = '\n'.join(f'stdout: {line}' for line in stdout.splitlines())
+        stderr = '\n'.join(f'stderr: {line}' for line in stderr.splitlines())
+        return f'cmd: {cmd}\ncwd: {cwd}\nexitcode: {exitcode}\nstdout: {stdout}\nstderr: {stderr}'
 
 def listdir(path='.', abspath=False):
     return list_filtered(path, abspath, lambda *a: True)
