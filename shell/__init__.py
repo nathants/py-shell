@@ -98,7 +98,7 @@ def run(*a,
         stream=None,
         echo=None,
         stdin='',
-        callback=None,
+        callback=None, # callback will run on each line of output concurrently in two threads. callback(kind: 'stdout | stderr', line: str) -> None
         warn=False,
         raw_cmd=False,
         cwd=None,
